@@ -1,67 +1,49 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
+using UnityEngine.UI;
 
-public class CarUIInputHandler : MonoBehaviour
+public class CarUIHandler : MonoBehaviour
 {
-    CarInputHandler playerCarInputHandler;
-
-    Vector2 inputVector = Vector2.zero;
+    [Header("Detalles del auto")]
+    public Image carImage;
+    
+    //Otros componentes
+    Animator animator = null;
 
     private void Awake()
     {
-        CarInputHandler[] carinputHandlers = FindObjectsByType<CarInputHandler>(FindObjectsSortMode.None);
-
-        foreach (CarInputHandler carInputHandler in carinputHandlers)
-        {
-            if (carInputHandler.isUIInput)
-            {
-                playerCarInputHandler = carInputHandler;
-                break;
-            }
-        }
+        animator = GetComponentInChildren<Animator>();
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+
     }
 
-    public void OnAcceleratePress()
+    public void SetupCar(CarData carData)
     {
-        inputVector.y = 1.0f;
-        playerCarInputHandler.SetInput(inputVector);
+        carImage.sprite = carData.CarUISprite;
     }
 
-    public void OnBrakePress()
+    public void StartCarEntranceAnimation(bool isAppearingOnRightSide)
     {
-        inputVector.y = 1.0f;
-        playerCarInputHandler.SetInput(inputVector);
+        if (isAppearingOnRightSide)
+            animator.Play("UI De Auto Aparece Desde La Derecha");
+        else animator.Play("UI De Auto Aparece Desde La Izquierda");
     }
 
-    public void OnAccelerateBrakeRelease()
+    public void StartCarExitAnimation(bool isExitingOnRightSide)
     {
-        inputVector.y = 0.0f;
-        playerCarInputHandler.SetInput(inputVector);
+        if (isExitingOnRightSide)
+            animator.Play("UI De Auto Desaparece A La Derecha");
+        else animator.Play("UI De Auto Desaparece A La Izquierda");
     }
 
-    public void OnSteerLeftPress()
+    //Eventos
+    public void OnCarExitAnimationCompleted()
     {
-        inputVector.x = -1.0f;
-        playerCarInputHandler.SetInput(inputVector);
+        Destroy(gameObject);
     }
-
-    public void OnSteerRightPress()
-    {
-        inputVector.x = -1.0f;
-        playerCarInputHandler.SetInput(inputVector);
-    }
-
-    public void OnSteerRelease()
-    {
-        inputVector.x = 0.0f;
-        playerCarInputHandler.SetInput(inputVector);
-    }
-
 }

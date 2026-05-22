@@ -78,4 +78,3 @@ public class CarSurfaceHandler : MonoBehaviour
         return drivingOnSurface;
     }
 }
-

@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
 
     //Estados
     GameStates gameState = GameStates.countDown;
-
+        
     //Tiempo
     float raceStartedTime = 0;
     float raceCompletedTime = 0;
@@ -56,6 +56,24 @@ public class GameManager : MonoBehaviour
         return gameState;
     }
 
+    public void OnRaceStart()
+    {
+        Debug.Log("OnRaceStart");
+
+        raceStartedTime = Time.time;
+
+        ChangeGameState(GameStates.running);
+    }
+
+    public void OnRaceCompleted()
+    {
+        Debug.Log("OnRaceCompleted");
+
+        raceCompletedTime = Time.time;
+
+        ChangeGameState(GameStates.raceOver);
+    }
+
     void ChangeGameState(GameStates newGameState)
     {
         if (gameState != newGameState)
@@ -94,6 +112,13 @@ public class GameManager : MonoBehaviour
         driverInfo.lastRacePosition = position;
     }
 
+    public void AddPointsToChampionship(int playerNumber, int points)
+    {
+        DriverInfo driverInfo = FindDriverInfo(playerNumber);
+
+        driverInfo.championshipPoints += points;
+    }
+
     DriverInfo FindDriverInfo(int playerNumber)
     {
         foreach (DriverInfo driverInfo in driverInfoList)
@@ -110,24 +135,6 @@ public class GameManager : MonoBehaviour
     public List<DriverInfo> GetDriverList()
     {
         return driverInfoList;
-    }
-
-    public void OnRaceStart()
-    {
-        Debug.Log("OnRaceStart");
-
-        raceStartedTime = Time.time;
-
-        ChangeGameState(GameStates.running);
-    }
-
-    public void OnRaceCompleted()
-    {
-        Debug.Log("OnRaceCompleted");
-
-        raceCompletedTime = Time.time;
-
-        ChangeGameState(GameStates.raceOver);
     }
 
 

@@ -5,9 +5,9 @@ using UnityEngine;
 public class Startup 
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    public static void InstantitatePrefabs()
+    public static void InstantiatePrefabs()
     {
-        Debug.Log("-- instanciando objetos --");
+        Debug.Log("-- Instanciando objetos --");
 
         GameObject[] prefabsToInstantiate = Resources.LoadAll<GameObject>("InstantiateOnLoad/");
 
@@ -18,6 +18,6 @@ public class Startup
             GameObject.Instantiate(prefab);
         }
 
-        Debug.Log("--Terminamos de instanciar los objetos--");
+        Debug.Log("-- Instanciando objetos completado --");
     }
 }

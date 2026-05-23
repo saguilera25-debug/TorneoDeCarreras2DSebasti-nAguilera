@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class CarLayerHandler : MonoBehaviour
 {
+    public SpriteRenderer carOutlineSpriteRenderer;
+
     List<SpriteRenderer> defaultLayerSpriteRenderers = new List<SpriteRenderer>();
 
     List<Collider2D> overpassColliderList = new List<Collider2D>();
@@ -35,7 +37,16 @@ public class CarLayerHandler : MonoBehaviour
         carCollider = GetComponentInChildren<Collider2D>();
 
         //Manejar a través del paso inferior.
-        carCollider.gameObject.layer = LayerMask.NameToLayer("ObjectOnUnderpass");
+        int underpassLayer = LayerMask.NameToLayer("ObjectOnUnderpass");
+
+        if (underpassLayer != -1)
+        {
+            carCollider.gameObject.layer = underpassLayer;
+        }
+        else
+        {
+            Debug.LogError("Layer 'ObjectOnUnderpass' does not exist!");
+        }
     }
 
 // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -55,10 +66,14 @@ void Start()
         if (isDrivingOnOverpass)
         {
             SetSortingLayer("RaceTrackOverpass");
+
+            carOutlineSpriteRenderer.enabled = false;
         }
         else
         {
             SetSortingLayer("Default");
+
+            carOutlineSpriteRenderer.enabled = true;
         }
 
         SetCollisionWithOverPass();
@@ -97,7 +112,16 @@ void Start()
         {
             isDrivingOnOverpass = false;
 
-            carCollider.gameObject.layer = LayerMask.NameToLayer("ObjectOnUnderpass");
+            int underpassLayer = LayerMask.NameToLayer("ObjectOnUnderpass");
+
+            if (underpassLayer != -1)
+            {
+                carCollider.gameObject.layer = underpassLayer;
+            }
+            else
+            {
+                Debug.LogError("Layer 'ObjectOnUnderpass' does not exist!");
+            }
 
             UpdateSortingAndCollisionLayers();
         }
@@ -105,7 +129,16 @@ void Start()
         {
             isDrivingOnOverpass = true;
 
-            carCollider.gameObject.layer = LayerMask.NameToLayer("ObjectOnOverpass");
+            int overpassLayer = LayerMask.NameToLayer("ObjectOnOverpass");
+
+            if (overpassLayer != -1)
+            {
+                carCollider.gameObject.layer = overpassLayer;
+            }
+            else
+            {
+                Debug.LogError("Layer 'ObjectOnOverpass' does not exist!");
+            }
 
             UpdateSortingAndCollisionLayers();
         }

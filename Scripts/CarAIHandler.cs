@@ -342,21 +342,23 @@ public class CarAIHandler : MonoBehaviour
 
         yield return new WaitForSeconds(0.7f);
 
-        //Si no nos movimos por un segundo entonces estamos atrapados.
         if ((transform.position - initialStuckPosition).sqrMagnitude < 3)
         {
-            //Obtén un camino hacia la posición asignada.
-            temporaryWaypoints = aStarLite.FindPath(currentWaypoint.transform.position);
+            if (currentWaypoint != null && aStarLite != null)
+            {
+                temporaryWaypoints = aStarLite.FindPath(currentWaypoint.transform.position);
 
-            //Si no se encuentra ninguna ruta, será nulo, así que si eso sucede, simplemente cree una nueva lista vacía.
-            if (temporaryWaypoints == null)
-                temporaryWaypoints = new List<Vector2>();
+                if (temporaryWaypoints == null)
+                    temporaryWaypoints = new List<Vector2>();
+            }
 
             stuckCheckCounter++;
-
             isFirstTemporaryWaypoint = true;
         }
-        else stuckCheckCounter = 0;
+        else
+        {
+            stuckCheckCounter = 0;
+        }
 
         isRunningStuckCheck = false;
     }

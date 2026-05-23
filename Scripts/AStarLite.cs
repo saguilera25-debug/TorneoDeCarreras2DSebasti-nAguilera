@@ -11,6 +11,8 @@ public class AStarLite : MonoBehaviour
 
     float cellSize = 2;
 
+    [SerializeField] LayerMask obstacleLayer;
+
     AStarNode[,] aStarNodes;
 
     AStarNode startNode;
@@ -20,17 +22,11 @@ public class AStarLite : MonoBehaviour
 
     List<Vector2> aiPath = new List<Vector2>();
 
-    //Debug
-    Vector3 startPositionDebug = new Vector3(1000, 0, 0);
-    Vector3 destinationPositionDebug = new Vector3(1000, 0, 0);
-
     public bool isDebugActiveForCar = false;
 
     void Start()
     {
         CreateGrid();
-
-        FindPath(new Vector2(32, 17));
     }
 
     void CreateGrid()
@@ -47,7 +43,7 @@ public class AStarLite : MonoBehaviour
                 Vector3 worldPosition = ConvertGridPositionToWorldPosition(aStarNodes[x, y]);
 
                 //Revisar si el nodo es un obstáculo
-                Collider2D hitCollider2D = Physics2D.OverlapCircle(worldPosition, cellSize / 2.0f);
+                Collider2D hitCollider2D = Physics2D.OverlapCircle(worldPosition, 0.3f, obstacleLayer);
 
                 if (hitCollider2D != null)
                 {
@@ -61,7 +57,6 @@ public class AStarLite : MonoBehaviour
 
                     //Marcar como obstáculo
                     aStarNodes[x, y].isObstacle = true;
-
                 }
             }
 
@@ -69,34 +64,24 @@ public class AStarLite : MonoBehaviour
         for (int x = 0; x < gridSizeX; x++)
             for (int y = 0; y < gridSizeY; y++)
             {
-                //Revisar vecino al norte, si estamos en el borde entonces no la añadimos.
                 if (y - 1 >= 0)
-                {
-                    if (!aStarNodes[x, y - 1].isObstacle)
-                        aStarNodes[x, y].neighbours.Add(aStarNodes[x, y - 1]);
-                }
+                    AddNeighbour(x, y, x, y - 1);
 
-                //Revisar vecino al sur, si estamos en el borde entonces no la añadimos.
-                if (y + 1 <= gridSizeY - 1)
-                {
-                    if (!aStarNodes[x, y + 1].isObstacle)
-                        aStarNodes[x, y].neighbours.Add(aStarNodes[x, y + 1]);
-                }
+                if (y + 1 < gridSizeY)
+                    AddNeighbour(x, y, x, y + 1);
 
-                //Revisar vecino al este, si estamos en el borde entonces no la añadimos.
                 if (x - 1 >= 0)
-                {
-                    if (!aStarNodes[x - 1, y].isObstacle)
-                        aStarNodes[x, y].neighbours.Add(aStarNodes[x - 1, y]);
-                }
+                    AddNeighbour(x, y, x - 1, y);
 
-                //Revisar vecino al oeste, si estamos en el borde entonces no la añadimos.
-                if (x + 1 <= gridSizeX - 1)
-                {
-                    if (!aStarNodes[x + 1, y].isObstacle)
-                        aStarNodes[x, y].neighbours.Add(aStarNodes[x + 1, y]);
-                }
+                if (x + 1 < gridSizeX)
+                    AddNeighbour(x, y, x + 1, y);
             }
+    }
+
+    void AddNeighbour(int x, int y, int nx, int ny)
+    {
+        if (!aStarNodes[nx, ny].isObstacle)
+            aStarNodes[x, y].neighbours.Add(aStarNodes[nx, ny]);
     }
 
     private void Reset()
@@ -122,37 +107,57 @@ public class AStarLite : MonoBehaviour
         Vector2Int destinationGridPoint = ConvertWorldToGridPoint(destination);
         Vector2Int currentPositionGridPoint = ConvertWorldToGridPoint(transform.position);
 
-        //Establece una posición de depuración para que podamos mostrarlo durante el desarrollo.
-        destinationPositionDebug = destination;
+        //Clamp al grid para evitar out-of-range
+        destinationGridPoint.x = Mathf.Clamp(destinationGridPoint.x, 0, gridSizeX - 1);
+        destinationGridPoint.y = Mathf.Clamp(destinationGridPoint.y, 0, gridSizeY - 1);
 
-        //Comienza el algoritmo calculando los costos para el primer nodo.
         startNode = GetNodeFromPoint(currentPositionGridPoint);
 
-        //Guarda la posición inicial de la cuadrícula para poder usarla durante el desarrollo.
-        startPositionDebug = ConvertGridPositionToWorldPosition(startNode);
+        if (startNode == null)
+        {
+            Debug.LogWarning("Start node inválido");
+            return null;
+        }
 
-        //Establece el nodo actual al nodo inicial.
+        AStarNode destinationNode = GetNodeFromPoint(destinationGridPoint);
+
+        if (destinationNode == null || destinationNode.isObstacle)
+        {
+
+            destinationNode = FindClosestWalkableNode(destinationGridPoint);
+
+            if (destinationNode == null)
+            {
+                Debug.LogWarning("No se encontró nodo caminable cercano");
+                return null;
+            }
+        }
+
         AStarNode currentNode = startNode;
 
         bool isDoneFindingPath = false;
         int pickedOrder = 1;
+        int safety = 0;
 
         //Repetir mientras no hayamos terminado el camino.
         while (!isDoneFindingPath)
         {
-            //Elimine el nodo actual de la lista de nodos que deben ser revisados.
+            safety++;
+            if (safety > 5000)
+            {
+                Debug.LogWarning("A* Safety break");
+                return null;
+            }
+
             nodesToCheck.Remove(currentNode);
 
-            //Establecer el orden de selección.
             currentNode.pickedOrder = pickedOrder;
-
             pickedOrder++;
 
-            //Agregar el nodo actual a la lista de nodos seleccionados.
             nodesChecked.Add(currentNode);
 
             //Si! Encontramos el destino.
-            if (currentNode.gridPosition == destinationGridPoint)
+            if (currentNode == destinationNode)
             {
                 isDoneFindingPath = true;
                 break;
@@ -161,92 +166,70 @@ public class AStarLite : MonoBehaviour
             //Calcular costo para todos los nodos.
             CalculateCostsForNodeAndNeighbours(currentNode, currentPositionGridPoint, destinationGridPoint);
 
-            //Revisar si los nodos vecinos deben ser considerados.
+            //Revisar vecinos
             foreach (AStarNode neighbourNode in currentNode.neighbours)
             {
-                //Saltarse cualquier nodo que ya ha sido revisado.
                 if (nodesChecked.Contains(neighbourNode))
                     continue;
 
-                //Saltarse cualquier nodo que ya aparece en la lista.
                 if (nodesToCheck.Contains(neighbourNode))
                     continue;
 
-                //Agregar el nodo a la lista que debemos revisar.
                 nodesToCheck.Add(neighbourNode);
             }
 
-            //Ordena la lista de manera que los elementos con el costo más bajo sumen (costo f) y, si tienen el mismo valor, elige el que tenga el costo más bajo para alcanzar el objetivo.
             nodesToCheck = nodesToCheck.OrderBy(x => x.fCostTotal).ThenBy(x => x.hCostDistanceFromGoal).ToList();
 
-            //Escoger el nodo con el costo menor como el siguiente nodo.
             if (nodesToCheck.Count == 0)
             {
-                Debug.LogWarning($"No quedan nodos en los siguientes nodos para comprobar, no tenemos solución.");
+                Debug.LogWarning("No quedan nodos en los siguientes nodos para comprobar, no tenemos solución.");
                 return null;
             }
-            else
-            {
-                currentNode = nodesToCheck[0];
-            }
+
+            currentNode = nodesToCheck[0];
         }
 
-        aiPath = CreatePathForAI(currentPositionGridPoint);
-
-        return aiPath;
+        return CreatePathForAI();
     }
 
-    List<Vector2> CreatePathForAI(Vector2Int currentPositionGridPoint)
+    List<Vector2> CreatePathForAI()
     {
         List<Vector2> resultAIPath = new List<Vector2>();
-        List<AStarNode> aiPath = new List<AStarNode>();
 
-        //Invierta los nodos para comprobarlo, ya que el último nodo añadido será el destino de la IA.
         nodesChecked.Reverse();
-
-        bool isPathCreated = false;
 
         AStarNode currentNode = nodesChecked[0];
 
-        aiPath.Add(currentNode);
+        List<AStarNode> pathNodes = new List<AStarNode>();
+        pathNodes.Add(currentNode);
 
         int attempts = 0;
 
-        while (!isPathCreated)
+        while (currentNode != startNode)
         {
-            //Ir al revés con el orden de creación más bajo.
-            currentNode.neighbours = currentNode.neighbours.OrderBy(x => x.pickedOrder).ToList();
-
-            //Si tu vecino no está en la lista, elige el que tenga el precio más bajo.
-            foreach (AStarNode aStarNode in currentNode.neighbours)
-            {
-                if (!aiPath.Contains(aStarNode) && nodesChecked.Contains(aStarNode))
-                {
-                    aiPath.Add(aStarNode);
-                    currentNode = aStarNode;
-
-                    break;
-                }
-            }
-
-            if (currentNode == startNode)
-                isPathCreated = true;
-
+            attempts++;
             if (attempts > 1000)
             {
-                Debug.LogWarning("CreatePathForAI falló después de demasiados intentos");
+                Debug.LogWarning("CreatePathForAI falló");
                 break;
             }
 
-            attempts++;
+            currentNode.neighbours = currentNode.neighbours.OrderBy(x => x.pickedOrder).ToList();
+
+            foreach (AStarNode aStarNode in currentNode.neighbours)
+            {
+                if (!pathNodes.Contains(aStarNode) && nodesChecked.Contains(aStarNode))
+                {
+                    pathNodes.Add(aStarNode);
+                    currentNode = aStarNode;
+                    break;
+                }
+            }
         }
 
-        foreach (AStarNode aStarNode in aiPath)
-        {
-            resultAIPath.Add(ConvertGridPositionToWorldPosition(aStarNode));
-        }
+        foreach (AStarNode node in pathNodes)
+        resultAIPath.Add(ConvertGridPositionToWorldPosition(node));
 
-        //Voltear el resultado.
         resultAIPath.Reverse();
 
         return resultAIPath;
@@ -257,121 +240,82 @@ public class AStarLite : MonoBehaviour
         aStarNode.CalculateCostsForNode(aiPosition, aiDestination);
 
         foreach (AStarNode neighbourNode in aStarNode.neighbours)
-        {
-            neighbourNode.CalculateCostsForNode(aiPosition, aiDestination);
-        }
+        neighbourNode.CalculateCostsForNode(aiPosition, aiDestination);
     }
 
     AStarNode GetNodeFromPoint(Vector2Int gridPoint)
     {
-        if (gridPoint.x < 0)
+        if (gridPoint.x < 0 || gridPoint.x >= gridSizeX)
             return null;
 
-        if (gridPoint.x > gridSizeX - 1)
-            return null;
-
-        if (gridPoint.y < 0)
-            return null;
-
-        if (gridPoint.y > gridSizeY - 1)
+        if (gridPoint.y < 0 || gridPoint.y >= gridSizeY)
             return null;
 
         return aStarNodes[gridPoint.x, gridPoint.y];
     }
 
-    Vector2Int ConvertWorldToGridPoint(Vector2 position)
+    AStarNode FindClosestWalkableNode(Vector2Int point)
     {
-        //Calcular el punto de la cuadrícula
-        Vector2Int gridPoint = new Vector2Int(Mathf.RoundToInt(position.x / cellSize + gridSizeX / 2.0f), Mathf.RoundToInt(position.y / cellSize + gridSizeY / 2.0f));
+        for (int radius = 1; radius < 5; radius++)
+        {
+            for (int x = -radius; x <= radius; x++)
+            {
+                for (int y = -radius; y <= radius; y++)
+                {
+                    Vector2Int check = new Vector2Int(point.x + x, point.y + y);
 
-        return gridPoint;
+                    AStarNode node = GetNodeFromPoint(check);
+
+                    if (node != null && !node.isObstacle)
+                        return node;
+                }
+            }
+        }
+
+        return null;
     }
 
-    Vector3 ConvertGridPositionToWorldPosition(AStarNode aStarNode)
+    Vector2Int ConvertWorldToGridPoint(Vector2 position)
     {
-        return new Vector3(aStarNode.gridPosition.x * cellSize - (gridSizeX * cellSize) / 2.0f, aStarNode.gridPosition.y * cellSize - (gridSizeY * cellSize) / 2.0f, 0);
+        float halfX = gridSizeX * cellSize * 0.5f;
+        float halfY = gridSizeY * cellSize * 0.5f;
+
+        int x = Mathf.FloorToInt((position.x + halfX) / cellSize);
+        int y = Mathf.FloorToInt((position.y + halfY) / cellSize);
+
+        return new Vector2Int(x, y);
+    }
+
+    Vector3 ConvertGridPositionToWorldPosition(AStarNode node)
+    {
+        return new Vector3(node.gridPosition.x * cellSize - (gridSizeX * cellSize) / 2.0f,node.gridPosition.y * cellSize - (gridSizeY * cellSize) / 2.0f, 0);
     }
 
     void OnDrawGizmos()
     {
-        if (aStarNodes == null)
-            return;
+        if (aStarNodes == null) return;
 
-        if (isDebugActiveForCar)
-            return;
+        if (isDebugActiveForCar) return;
 
-        //Dibujar una cuadrícula
         for (int x = 0; x < gridSizeX; x++)
             for (int y = 0; y < gridSizeY; y++)
             {
-                if (aStarNodes[x, y].isObstacle)
-                    Gizmos.color = Color.red;
-                else Gizmos.color = Color.green;
-
+                Gizmos.color = aStarNodes[x, y].isObstacle ? Color.red : Color.green;
                 Gizmos.DrawWireCube(ConvertGridPositionToWorldPosition(aStarNodes[x, y]), new Vector3(cellSize, cellSize, cellSize));
             }
 
-        //Dibujar los nodos que revisamos.
-        foreach (AStarNode checkedNode in nodesChecked)
-        {
-            Gizmos.color = Color.green;
-            //Gizmos.DrawSphere(ConvertGridPositionToWorldPosition(checkedNode), 1.0f);
-
-#if UNITY_EDITOR
-
-            Vector3 labelPosition = ConvertGridPositionToWorldPosition(checkedNode);
-
-            labelPosition.z = -1;
-
-            GUIStyle style = new GUIStyle();
-
-            style.normal.textColor = Color.green;
-
-            Handles.Label(labelPosition + new Vector3(-0.6f, 1f, 0), $"{checkedNode.hCostDistanceFromGoal}", style);
-
-            style.normal.textColor = Color.red;
-
-            Handles.Label(labelPosition + new Vector3(0.5f, 1f, 0), $"{checkedNode.gCostDistanceFromStart}", style);
-
-            style.normal.textColor = Color.yellow;
-
-            Handles.Label(labelPosition + new Vector3(0.5f, -0.5f, 0), $"{checkedNode.pickedOrder}", style);
-
-            style.normal.textColor = Color.white;
-
-            Handles.Label(labelPosition + new Vector3(0, 0.2f, 0), $"{checkedNode.fCostTotal}", style);
-#endif
-
-        }
-
-        //Dibujar los nodos que debimos haber revisado.
-        foreach (AStarNode toCheckNode in nodesToCheck)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawSphere(ConvertGridPositionToWorldPosition(toCheckNode), 1.0f);
-        }
-
-        Vector3 lastAIPoint = Vector3.zero;
-        bool isFirstStep = true;
-
         Gizmos.color = Color.black;
 
-        foreach (Vector2 point in aiPath)
+        Vector3 last = Vector3.zero;
+        bool first = true;
+
+        foreach (Vector2 p in aiPath)
         {
-            if (!isFirstStep)
-                Gizmos.DrawLine(lastAIPoint, point);
+            if (!first)
+                Gizmos.DrawLine(last, p);
 
-            lastAIPoint = point;
-
-            isFirstStep = false;
+            last = p;
+            first = false;
         }
-
-        //Dibujar la posición de inicio.
-        Gizmos.color = Color.black;
-        Gizmos.DrawSphere(startPositionDebug, 1f);
-
-        //Dibujar la posición final.
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(destinationPositionDebug, 1f);
     }
 }

@@ -13,25 +13,32 @@ public class WheelTrailRendererHandler : MonoBehaviour
 
     void Awake()
     {
-        //Consigue el controlador de autos top-down.
         topDownCarController = GetComponentInParent<TopDownCarController>();
-
         carLayerHandler = GetComponentInParent<CarLayerHandler>();
-
-        //Obtén el componente de trail renderer
         trailRenderer = GetComponent<TrailRenderer>();
 
-        //Ajusta el trail renderer para que no se emita al inicio.
-        trailRenderer.emitting = false;
+        if (topDownCarController == null)
+            Debug.LogError("No se encontró TopDownCarController");
+
+        if (carLayerHandler == null)
+            Debug.LogError("No se encontró CarLayerHandler");
+
+        if (trailRenderer == null)
+            Debug.LogError("No se encontró TrailRenderer");
+
+        if (trailRenderer != null)
+            trailRenderer.emitting = false;
     }
 
 
     // Update is called once per frame
     void Update()
     {
+        if (topDownCarController == null || trailRenderer == null || carLayerHandler == null)
+            return;
+
         trailRenderer.emitting = false;
 
-        //Si las llantas estan chirriando entonces emitiremos un camino.
         if (topDownCarController.IsTireScreeching(out float lateralVelocity, out bool isBraking))
         {
             if (carLayerHandler.IsDrivingOnOverpass() && isOverpassEmitter)

@@ -41,7 +41,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         //Proporcione información ficticia del conductor para fines de prueba.
-        driverInfoList.Add(new DriverInfo(1, "P1", 0, false));
+        driverInfoList.Add(new DriverInfo(1, "Jett Walker", 0, false));
     }
 
     void LevelStart()
@@ -136,7 +136,7 @@ public class GameManager : MonoBehaviour
     {
         return driverInfoList;
     }
-
+ 
 
     private void OnEnable()
     {

@@ -82,7 +82,7 @@ public class SelectCarUIHandler : MonoBehaviour
 
         GameManager.instance.ClearDriversList();
 
-        GameManager.instance.AddDriverToList(1, "P1", carDatas[selectedCarIndex].CarUniqueID, false);
+        GameManager.instance.AddDriverToList(1, "Jett Walker", carDatas[selectedCarIndex].CarUniqueID, false);
 
         List<CarData> uniqueCars = new List<CarData>(carDatas);
 

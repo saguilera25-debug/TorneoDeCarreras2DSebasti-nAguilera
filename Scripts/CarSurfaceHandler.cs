@@ -12,7 +12,8 @@ public class CarSurfaceHandler : MonoBehaviour
     Vector3 lastSampledSurfacePosition = Vector3.one * 10000;
 
     //TipoDeSuperficie
-    Surface.SurfaceTypes drivingOnSurface = Surface.SurfaceTypes.Road;
+    Surface.SurfaceTypes drivingOnSurface =
+        Surface.SurfaceTypes.Road;
 
     //Otros componentes
     Collider2D carCollider;
@@ -23,7 +24,9 @@ public class CarSurfaceHandler : MonoBehaviour
 
         if (carCollider == null)
         {
-            Debug.LogError("No se encontró Collider2D en el auto.");
+            Debug.LogError(
+                "No se encontró Collider2D en el auto."
+            );
         }
     }
 
@@ -36,39 +39,73 @@ public class CarSurfaceHandler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //Evitar comprobaciones innecesarias
+        //si el auto apenas se movió.
         if ((transform.position - lastSampledSurfacePosition).sqrMagnitude < 0.75f)
             return;
 
-        ContactFilter2D contactFilter2D = new ContactFilter2D();
+        //No continuar si no existe collider.
+        if (carCollider == null)
+            return;
+
+        ContactFilter2D contactFilter2D =
+            new ContactFilter2D();
+
         contactFilter2D.layerMask = surfaceLayer;
         contactFilter2D.useLayerMask = true;
         contactFilter2D.useTriggers = true;
 
-        int numberOfHits = Physics2D.OverlapCollider(carCollider, contactFilter2D, surfaceCollidersHit);
+        //Limpiar array antes de reutilizarlo.
+        for (int i = 0; i < surfaceCollidersHit.Length; i++)
+        {
+            surfaceCollidersHit[i] = null;
+        }
+
+        int numberOfHits =
+            Physics2D.OverlapCollider(
+                carCollider,
+                contactFilter2D,
+                surfaceCollidersHit
+            );
 
         float lastSurfaceZValue = -1000;
+
+        bool foundValidSurface = false;
 
         for (int i = 0; i < numberOfHits; i++)
         {
             if (surfaceCollidersHit[i] == null)
                 continue;
 
-            Surface surface = surfaceCollidersHit[i].GetComponent<Surface>();
+            Surface surface =
+                surfaceCollidersHit[i].GetComponent<Surface>();
 
             if (surface == null)
                 continue;
 
+            //Elegir superficie con mayor Z.
             if (surface.transform.position.z > lastSurfaceZValue)
             {
                 drivingOnSurface = surface.surfaceType;
-                lastSurfaceZValue = surface.transform.position.z;
+
+                lastSurfaceZValue =
+                    surface.transform.position.z;
+
+                foundValidSurface = true;
             }
         }
 
-        if (numberOfHits == 0)
-            drivingOnSurface = Surface.SurfaceTypes.Road;
+        //Si no encontramos superficies válidas,
+        //volver a carretera.
+        if (!foundValidSurface)
+        {
+            drivingOnSurface =
+                Surface.SurfaceTypes.Road;
+        }
 
-        lastSampledSurfacePosition = transform.position;
+        //Guardar última posición revisada.
+        lastSampledSurfacePosition =
+            transform.position;
 
         Debug.Log($"Driving on {drivingOnSurface}");
     }

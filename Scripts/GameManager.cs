@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
 
     //Estados
     GameStates gameState = GameStates.countDown;
-        
+
     //Tiempo
     float raceStartedTime = 0;
     float raceCompletedTime = 0;
@@ -136,7 +136,7 @@ public class GameManager : MonoBehaviour
     {
         return driverInfoList;
     }
- 
+
 
     private void OnEnable()
     {

@@ -8,9 +8,4 @@ public class Surface : MonoBehaviour
 
     [Header("Surface")]
     public SurfaceTypes surfaceType;
-
-    void Start()
-    {
-
-    }
 }

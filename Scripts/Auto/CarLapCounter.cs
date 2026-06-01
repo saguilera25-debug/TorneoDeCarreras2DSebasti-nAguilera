@@ -5,6 +5,7 @@ using System;
 using UnityEngine.UI;
 using TMPro;
 
+//Cuenta cúantas vueltas necesita dar el auto para completar la carrera.
 public class CarLapCounter : MonoBehaviour
 {
     int passedCheckPointNumber = 0;
@@ -19,8 +20,9 @@ public class CarLapCounter : MonoBehaviour
 
     int carPosition = 0;
 
-    bool isHideRoutineRunning = false;
     float hideUIDelayTime;
+
+    Coroutine showPositionCoroutine;
 
     public TMP_Text carPositionText;
 
@@ -36,6 +38,7 @@ public class CarLapCounter : MonoBehaviour
     {
         return numberOfPassedCheckpoints;
     }
+
     public float GetTimeAtLastCheckPoint()
     {
         return timeAtLastPassedCheckPoint;
@@ -43,23 +46,17 @@ public class CarLapCounter : MonoBehaviour
 
     IEnumerator ShowPositionCO(float delayUntilHidePosition)
     {
-        hideUIDelayTime += delayUntilHidePosition;
 
+        //Mostrar posición actual.
         carPositionText.text = carPosition.ToString();
 
         carPositionText.gameObject.SetActive(true);
 
-        if (!isHideRoutineRunning)
-        {
-            isHideRoutineRunning = true;
+        yield return new WaitForSeconds(delayUntilHidePosition);
 
-            yield return new WaitForSeconds(hideUIDelayTime);
-
+        //Ocultar UI si la carrera no ha terminado.
+        if (!isRaceCompleted)
             carPositionText.gameObject.SetActive(false);
-
-            isHideRoutineRunning = false;
-        }
-
     }
 
     void OnTriggerEnter2D(Collider2D collider2D)
@@ -94,10 +91,15 @@ public class CarLapCounter : MonoBehaviour
                 //Invocar el evento de checkpoint pasado.
                 OnPassCheckpoint?.Invoke(this);
 
+                //Detener rutina anterior para evitar acumulación de coroutines.
+                if (showPositionCoroutine != null)
+                    StopCoroutine(showPositionCoroutine);
+
                 //Ahora muestra la posición de los autos como calculado.
                 if (isRaceCompleted)
-                    StartCoroutine(ShowPositionCO(100));
-                else StartCoroutine(ShowPositionCO(1.5f));
+                    showPositionCoroutine = StartCoroutine(ShowPositionCO(100));
+                else
+                    showPositionCoroutine = StartCoroutine(ShowPositionCO(1.5f));
             }
         }
     }

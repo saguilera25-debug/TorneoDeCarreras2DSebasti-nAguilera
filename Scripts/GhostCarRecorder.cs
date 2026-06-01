@@ -22,14 +22,21 @@ public class GhostCarRecorder : MonoBehaviour
         carRigidbody2D = GetComponent<Rigidbody2D>();
         carInputHandler = GetComponent<CarInputHandler>();
     }
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         //Crea un auto fantasma.
-        GameObject ghostCar = Instantiate(ghostCarPlaybackPrefab);
+        if (ghostCarPlaybackPrefab != null)
+        {
+            GameObject ghostCar = Instantiate(ghostCarPlaybackPrefab);
 
-        //Carga el data para el jugador currente.
-        ghostCar.GetComponent<GhostCarPlayback>().LoadData(carInputHandler.playerNumber);
+            //Carga el data para el jugador currente.
+            GhostCarPlayback ghostPlayback = ghostCar.GetComponent<GhostCarPlayback>();
+
+            if (ghostPlayback != null && carInputHandler != null)
+                ghostPlayback.LoadData(carInputHandler.playerNumber);
+        }
 
         StartCoroutine(RecordCarPositionCO());
         StartCoroutine(SaveCarPositionCO());
@@ -40,7 +47,16 @@ public class GhostCarRecorder : MonoBehaviour
         while (isRecording)
         {
             if (carSpriteObject != null)
-                ghostCarData.AddDataItem(new GhostCarDataListItem(carRigidbody2D.position, carRigidbody2D.rotation, carSpriteObject.localScale, Time.timeSinceLevelLoad));
+            {
+                ghostCarData.AddDataItem(
+                    new GhostCarDataListItem(
+                        carRigidbody2D.position,
+                        carRigidbody2D.rotation,
+                        carSpriteObject.localScale,
+                        Time.timeSinceLevelLoad
+                    )
+                );
+            }
 
             yield return new WaitForSeconds(0.15f);
         }
@@ -57,15 +73,26 @@ public class GhostCarRecorder : MonoBehaviour
     {
         string jsonEncodedData = JsonUtility.ToJson(ghostCarData);
 
-        Debug.Log($"Data de auto fantasma guardado {jsonEncodedData}");
+        Debug.Log($"Data de auto fantasma guardado: {jsonEncodedData}");
 
         if (carInputHandler != null)
         {
-            PlayerPrefs.SetString($"{SceneManager.GetActiveScene().name}_{carInputHandler.playerNumber}_ghost", jsonEncodedData);
+            PlayerPrefs.SetString(
+                $"{SceneManager.GetActiveScene().name}_{carInputHandler.playerNumber}_ghost",
+                jsonEncodedData
+            );
+
             PlayerPrefs.Save();
         }
 
         //Detener la grabación si ya guardamos el data.
         isRecording = false;
+    }
+
+    void OnDisable()
+    {
+        //Guardar automáticamente si el objeto se destruye o desactiva.
+        if (isRecording)
+            SaveData();
     }
 }

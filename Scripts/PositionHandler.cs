@@ -5,42 +5,110 @@ using System.Linq;
 
 public class PositionHandler : MonoBehaviour
 {
-    //Otros componentes
-    LeaderboardUIHandler leaderboardUIHandler;
+    // Otros componentes
+    private LeaderboardUIHandler leaderboardUIHandler;
 
+    // Lista de contadores de vueltas
     public List<CarLapCounter> carLapCounters = new List<CarLapCounter>();
 
-    void Start()
+    private void Start()
     {
-        //Obtiene todos los contadores de vueltas en la escena.
+        // Obtener todos los contadores de vueltas en la escena
         CarLapCounter[] carLapCounterArray = FindObjectsByType<CarLapCounter>(FindObjectsSortMode.None);
 
-        //Guarda los contadores de vueltas en una lista.
-        carLapCounters = carLapCounterArray.ToList<CarLapCounter>();
+        // Verificar si existen contadores
+        if (carLapCounterArray.Length == 0)
+        {
+            Debug.LogWarning("No se encontraron CarLapCounter en la escena.");
 
-        //Conectar el evento del punto de control superado
-        foreach (CarLapCounter lapCounters in carLapCounters)
-            lapCounters.OnPassCheckpoint += OnPassCheckpoint;
+            return;
+        }
 
-        //Obtén el controlador de la interfaz de usuario de la tabla de clasificación
+        // Guardar los contadores en una lista
+        carLapCounters = carLapCounterArray.ToList();
+
+        // Conectar eventos de checkpoints
+        foreach (CarLapCounter lapCounter in carLapCounters)
+        {
+            // Verificar referencia válida
+            if (lapCounter == null)
+                continue;
+
+            lapCounter.OnPassCheckpoint += OnPassCheckpoint;
+        }
+
+        // Obtener controlador del leaderboard
         leaderboardUIHandler = FindFirstObjectByType<LeaderboardUIHandler>();
 
+        // Verificar existencia del leaderboard
+        if (leaderboardUIHandler == null)
+        {
+            Debug.LogWarning("No se encontró LeaderboardUIHandler en la escena.");
+        }
+
+        // Ordenar posiciones iniciales
+        UpdateCarPositions();
+
+        Debug.Log($"PositionHandler inicializado con {carLapCounters.Count} autos.");
     }
 
-
-    void OnPassCheckpoint(CarLapCounter carLapCounter)
+    //Se ejecuta cuando un auto pasa un checkpoint.
+    private void OnPassCheckpoint(CarLapCounter carLapCounter)
     {
-        //Primero, ordena la posición de los coches según la cantidad de puntos de control que hayan superado; cuantos más, mejor.
-        carLapCounters = carLapCounters.OrderByDescending(s => s.GetNumberOfCheckpointsPassed()).ThenBy(s => s.GetTimeAtLastCheckPoint()).ToList();
+        // Verificar referencia válida
+        if (carLapCounter == null)
+        {
+            Debug.LogWarning("OnPassCheckpoint recibió un CarLapCounter NULL.");
 
-        //Consigue la posición de los autos.
-        int carPosition = carLapCounters.IndexOf(carLapCounter) + 1;
+            return;
+        }
 
-        //Decirle al contador de vueltas en que posición se encuentra el auto.
-        carLapCounter.SetCarPosition(carPosition);
+        // Actualizar posiciones
+        UpdateCarPositions();
 
-        //Pídele al encargado de la clasificación que actualice la lista.
-        leaderboardUIHandler.UpdateList(carLapCounters);
-        Debug.Log($"Event: Auto {carLapCounter.gameObject.name} pasó un checkpoint");
+        Debug.Log($"Event: Auto {carLapCounter.gameObject.name} pasó un checkpoint.");
+    }
+
+    //Ordena los autos y actualiza posiciones.
+    private void UpdateCarPositions()
+    {
+        // Eliminar referencias nulas
+        carLapCounters = carLapCounters.Where(car => car != null).ToList();
+
+        // Ordenar:
+        // 1. Más checkpoints superados = mejor posición
+        // 2. Menor tiempo en último checkpoint = mejor posición
+        carLapCounters = carLapCounters.OrderByDescending(car => car.GetNumberOfCheckpointsPassed()).ThenBy(car => car.GetTimeAtLastCheckPoint()).ToList();
+
+        // Actualizar posición de cada auto
+        for (int i = 0; i < carLapCounters.Count; i++)
+        {
+            if (carLapCounters[i] == null)
+                continue;
+
+            // Posición real = índice + 1
+            int carPosition = i + 1;
+
+            // Asignar posición
+            carLapCounters[i].SetCarPosition(carPosition);
+        }
+
+        // Actualizar interfaz del leaderboard
+        if (leaderboardUIHandler != null)
+        {
+            leaderboardUIHandler.UpdateList(carLapCounters);
+        }
+    }
+
+    // Desconecta eventos al destruir el objeto.
+    private void OnDestroy()
+    {
+        foreach (CarLapCounter lapCounter in carLapCounters)
+        {
+            if (lapCounter == null)
+                continue;
+
+            lapCounter.OnPassCheckpoint -= OnPassCheckpoint;
+        }
     }
 }

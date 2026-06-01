@@ -1,69 +1,62 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class CarInputHandler : MonoBehaviour
 {
-    [Header("Jugador")]
     public int playerNumber = 1;
-
-    [Header("UI Input")]
     public bool isUIInput = false;
 
-    //Input actual
-    private Vector2 inputVector = Vector2.zero;
+    Vector2 inputVector = Vector2.zero;
 
     //Componentes
-    private TopDownCarController topDownCarController;
+    TopDownCarController topDownCarController;
 
-    //Input System
-    private CarControls carControls;
-
-    private void Awake()
+    void Awake()
     {
         topDownCarController = GetComponent<TopDownCarController>();
-
-        if (topDownCarController == null)
-            Debug.LogError("No se encontró TopDownCarController.");
-
-        //Crear instancia de controles
-        carControls = new CarControls();
     }
 
-    private void OnEnable()
+    void Update()
     {
-        carControls.Enable();
+        if (isUIInput)
+        {
 
-        //Activar Gameplay explícitamente
-        carControls.Gameplay.Enable();
+        }
+        else
+        {
+            inputVector = Vector2.zero;
+
+            switch (playerNumber)
+            {
+                case 1:
+                    inputVector.x = Input.GetAxis("Horizontal_P1");
+                    inputVector.y = Input.GetAxis("Vertical_P1");
+                    break;
+
+                case 2:
+                    inputVector.x = Input.GetAxis("Horizontal_P2");
+                    inputVector.y = Input.GetAxis("Vertical_P2");
+                    break;
+
+                case 3:
+                    inputVector.x = Input.GetAxis("Horizontal_P3");
+                    inputVector.y = Input.GetAxis("Vertical_P3");
+                    break;
+
+                case 4:
+                    inputVector.x = Input.GetAxis("Horizontal_P4");
+                    inputVector.y = Input.GetAxis("Vertical_P4");
+                    break;
+            }
+
+            topDownCarController.SetInputVector(inputVector);
+        }
     }
 
-    private void OnDisable()
-    {
-        carControls.Gameplay.Disable();
-
-        carControls.Disable();
-    }
-
-    private void Update()
-    {
-        if (topDownCarController == null)
-            return;
-
-        //Leer movimiento
-        inputVector = carControls.Gameplay.Move.ReadValue<Vector2>();
-
-        Debug.Log("INPUT: " + inputVector);
-
-        //Enviar input al auto
-        topDownCarController.SetInputVector(inputVector);
-    }
-
-    //Para UI o input externo
     public void SetInput(Vector2 newInput)
     {
         inputVector = newInput;
-
-        if (topDownCarController != null)
-            topDownCarController.SetInputVector(inputVector);
     }
+
 }

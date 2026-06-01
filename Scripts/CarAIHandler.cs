@@ -113,7 +113,7 @@ public class CarAIHandler : MonoBehaviour
             previousWaypoint = currentWaypoint;
         }
 
-        if (currentWaypoint == null) 
+        if (currentWaypoint == null)
             return;
 
         targetPosition = currentWaypoint.transform.position;
@@ -136,7 +136,7 @@ public class CarAIHandler : MonoBehaviour
     void FollowTemporaryWayPoints()
     {
         //Establece la posición objetiva para la IA.
-        if (temporaryWaypoints.Count == 0) 
+        if (temporaryWaypoints.Count == 0)
             return;
 
         //Guarda que tan cerca estamos al objetivo.
@@ -265,7 +265,7 @@ public class CarAIHandler : MonoBehaviour
         polygonCollider2D.enabled = false;
 
         //Realiza el lanzamiento circular delante del coche con un ligero desplazamiento hacia adelante y solo en la capa del auto.
-        RaycastHit2D raycastHit2d = Physics2D.CircleCast(transform.position + transform.up * 0.5f, 1.2f,transform.up, 12, 1 << LayerMask.NameToLayer("Car"));
+        RaycastHit2D raycastHit2d = Physics2D.CircleCast(transform.position + transform.up * 0.5f, 1.2f, transform.up, 12, 1 << LayerMask.NameToLayer("Car"));
 
         //Activa los colliders otra vez para que el auto pueda chocar y otros autos puedan detectarlo.
         polygonCollider2D.enabled = true;
@@ -300,7 +300,7 @@ public class CarAIHandler : MonoBehaviour
 
             //Calcula el vector de reflexión si chocáramos con el otro auto.
             avoidanceVector = Vector2.Reflect((otherCarPosition - transform.position).normalized, otherCarRightVector);
-               
+
             float distanceToTarget = (targetPosition - transform.position).magnitude;
 
             //Queremos poder controlar cuánto deseo tiene la IA de conducir hacia el punto de referencia en lugar de evitar a los demás coches.
